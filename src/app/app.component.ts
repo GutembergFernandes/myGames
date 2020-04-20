@@ -79,7 +79,9 @@ export class AppComponent implements OnInit {
         });
 
         $(document).on('click', '#links > a', () => {
+        if (window.innerWidth < 512){
           $('#links').slideUp('fast');
+          }
         });
     });
 
