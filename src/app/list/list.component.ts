@@ -3,17 +3,19 @@ import { AngularFirestoreCollection, AngularFirestore } from '@angular/fire/fire
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
+// Modelagem dos dados
 export interface Game {
-  date: string;
-  title: string;
   cover: string;
+  date: string;
   description: string;
   media: string;
   platform: string;
- }
+  title: string;
+}
 
+// Modelagem com o Id do documento
 export interface GameId extends Game {
-   id: string;
+  id: string;
 }
 
 @Component({
@@ -23,59 +25,91 @@ export interface GameId extends Game {
 })
 export class ListComponent implements OnInit {
 
-private gameCollection: AngularFirestoreCollection<Game>;
+  // Atributos
 
-games: Observable<GameId[]>;
+  // Obtém a coleção do Firestore, conforme o modelo acima
+  private gameCollection: AngularFirestoreCollection<Game>;
 
-orderBy: string;
+  // Objeto games é tipo assíncrono que vai receber os dados do Db
+  games: Observable<GameId[]>;
 
-orderDr: any;
+  // Campo que será usado para ordenação dos dados
+  orderBy: string;
 
+  // Direção da ordenação dos dados (ascedente ou descendente)
+  orderDr: any;
 
   constructor(private db: AngularFirestore) {
 
-    this.orderBy = "title";
+    // Ordena pelo título ao carregar
+    this.orderBy = 'title';
 
-    this.orderDr = "asc";
+    // Em ordem ascendente ao carregar
+    this.orderDr = 'asc';
 
-   }
+  }
 
   ngOnInit(): void {
 
+    // Atualiza a lista de games
     this.getList();
 
   }
 
-  getList(){
+  getList() {
+    // Referência aos documentos da coleção 'games'
     this.gameCollection = this.db.collection<Game>('games', ref => ref.orderBy(this.orderBy, this.orderDr));
 
+    // Obtém os documento da coleção
     this.games = this.gameCollection.snapshotChanges().pipe(
       map(actions => actions.map(a => {
         const data = a.payload.doc.data() as Game;
         const id = a.payload.doc.id;
 
+        // Retorna os documentos quando eles forem obtidos
         return { id, ...data };
       }))
     );
+  }
 
+  // Altera o campo usado para ordenar a listagem
+  changeOrderField(field: string) {
+
+    if (this.orderBy !== field) { // Se o campo selecionado é diferente do atual
+      this.orderBy = field; // Muda o valor do campo
+      this.getList(); // Atualizar a listagem com o novo parâmetro
+    }
+    return false; // Sai sem fazer nada
 
   }
-  changeOrderField(field: string){
 
-    if (this.orderBy !== field) {
-      this.orderBy = field;
-      this.getList();
+  changeOrderDir(direction: any) {
+
+    if (this.orderDr !== direction) { // Se o campo selecionado é diferente do atual
+      this.orderDr = direction; // Muda o valor do campo
+      this.getList(); // Atualizar a listagem com o novo parâmetro
     }
+    return false; // Sai sem fazer nada
+
+  }
+
+  // Apaga um documento
+  deleteGame(gameKey, gameTitle) {
+
+    // Mensagem para confirmar se deseja apagar (Observe o ! = NOT)
+    if (!confirm(`Oooops!\nTem certeza que deseja apagar "${gameTitle}" da sua coleção?`)) {
+      return false;
+    }
+
+    this.db.collection('games').doc(gameKey).delete()
+      .then(res => {
+        alert(`"${gameTitle}" foi apagado da sua coleção!\nClique em [Ok] para continuar.`);
+      })
+      .catch(err => {
+        console.error(`Falha ao apagar: ${err}`);
+      });
+
     return false;
 
-    }
-
-    changeOrderDir(direction: any){
-      if (this.orderDr !== direction) {
-        this.orderDr = direction;
-        this.getList();
-      }
-      return false;
-
-    }
+  }
 }
